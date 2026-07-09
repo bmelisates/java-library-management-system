@@ -31,7 +31,6 @@ public class Librarian {
     // 3. issueBook: Kitap ödünç verme işlemini başlatır
     public void issueBook(MemberRecord member, Book book) {
         System.out.println("[GÖREVLİ] : " + name + ", " + member.getReader().getName() + " için ödünç işlemini onaylıyor.");
-        // 🔑 DÜZELTME: borrowBook yerine lendBook çağırıyoruz
         library.lendBook(member, book);
     }
 

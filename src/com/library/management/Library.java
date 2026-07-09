@@ -11,7 +11,7 @@ import java.util.*;
 public class Library implements LibraryOperations {
     private List<Book> inventory;                     //Kütüphanedeki tüm kitapların listesi
     private Map<String, MemberRecord> members;        // Üyeleri id keyi ile tutan Map
-    private Map<Book, MemberRecord> borrowedBooksMap; // Kitabın kimde olduğunu tutan Map
+    private Map<Book, MemberRecord> borrowedBooksMap; // Kitapların kimde olduğunu tutan Map
     private List<Bill> bills;                         // Faturaların listesi
 
     // 1. CONSTRUCTOR : Sıfırdan açılan temiz kütüphane
@@ -45,9 +45,14 @@ public class Library implements LibraryOperations {
     }
 
 
-    // Kütüphaneye Yeni Kitap Satın Alma / Ekleme
+    // Kütüphaneye Yeni Kitap Ekleme
     @Override
-    public void purchaseBook(Book book) {
+    public void purchaseBook(Book book, Object user) {
+        // Güvenlik katmanı: Kütüphaneci mi?
+        if (!(user instanceof Librarian)) {
+            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap ekleyebilir.");
+            return; // Hata fırlatma, sadece metottan çık!
+        }
         if (book == null) {
             System.out.println("[UYARI] : Geçersiz veya boş kitap eklenemez!");
             return;
@@ -81,7 +86,7 @@ public class Library implements LibraryOperations {
         member.addBorrowedBook(book, this);
         this.borrowedBooksMap.put(book, member);
 
-        System.out.println("[İŞLEM ONAYLANDI] : " + member.getReader().getName() + " \"" + book.getTitle() + "\" kitabını aldı.");
+        System.out.println("[İŞLEM ONAYLANDI] : " + member.getReader().getName() + ", " + book.getBookId() + " id no'lu " + " \"" + book.getTitle() + "\" kitabını aldı.");
 
         // Fatura Kesimi
         String billId = "BLL-" + (bills.size() + 1);
@@ -147,7 +152,14 @@ public class Library implements LibraryOperations {
     }
 
     // Kitap Güncelleme
-    public void updateBook(int bookId, double newPrice, String newEdition) {
+    public void updateBook(int bookId, double newPrice, String newEdition, Object user) {
+        // 1. GÜVENLİK KATMANI: Sadece kütüphaneci mi?
+        if (!(user instanceof Librarian)) {
+            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap güncelleyebilir.");
+            return; // Metodu burada kesip çıkıyoruz
+        }
+
+        // 2. İŞ MANTIĞI: Eğer kütüphaneci ise devam et
         Book book = searchBook(String.valueOf(bookId));
         if (book != null) {
             book.setPrice(newPrice);
@@ -159,7 +171,12 @@ public class Library implements LibraryOperations {
     }
 
     //  Kitap Silme
-    public void deleteBook(int bookId) {
+    public void deleteBook(int bookId, Object user) {
+        // 1. GÜVENLİK KATMANI: Sadece kütüphaneci mi?
+        if (!(user instanceof Librarian)) {
+            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap güncelleyebilir.");
+            return; // Metodu burada kesip çıkıyoruz
+        }
         Book book = searchBook(String.valueOf(bookId));
         if (book != null) {
             if (book.getStatus() == Status.BORROWED) {
@@ -174,7 +191,12 @@ public class Library implements LibraryOperations {
     }
 
     // Kitap silme (nesne ile)
-    public void deleteBook(Book book) {
+    public void deleteBook(Book book, Object user) {
+        // 1. GÜVENLİK KATMANI: Sadece kütüphaneci mi?
+        if (!(user instanceof Librarian)) {
+            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap güncelleyebilir.");
+            return; // Metodu burada kesip çıkıyoruz
+        }
         // Nesnenin envanterde var olduğunu doğrulayalım
         if (!this.inventory.contains(book)) {
             System.out.println("[HATA] : Bu kitap zaten envanterde kayıtlı değil!");

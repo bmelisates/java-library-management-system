@@ -18,6 +18,7 @@ public class Novel extends Book implements Categorizable {
         this.genre = genre;
     }
 
+
     @Override
     public void display() {
         super.display();

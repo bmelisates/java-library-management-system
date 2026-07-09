@@ -4,11 +4,11 @@ import com.library.book.Book;
 import com.library.member.MemberRecord;
 
 public interface LibraryOperations {
-    void purchaseBook(Book book);
+    void purchaseBook(Book book, Object user);
 
-    void lendBook(MemberRecord member, Book book);      // 👈 İsmi lendBook yapıyoruz
+    void lendBook(MemberRecord member, Book book);
 
-    void takeBackBook(MemberRecord member, Book book);  // 👈 İsmi takeBackBook yapıyoruz
+    void takeBackBook(MemberRecord member, Book book);
 
     void showBooksOfMember(MemberRecord member);
 }
