@@ -6,6 +6,8 @@ import com.library.book.Status;
 import com.library.member.MemberRecord;
 import com.library.person.Author;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class Library implements LibraryOperations {
@@ -51,13 +53,24 @@ public class Library implements LibraryOperations {
         // Güvenlik katmanı: Kütüphaneci mi?
         if (!(user instanceof Librarian)) {
             System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap ekleyebilir.");
-            return; // Hata fırlatma, sadece metottan çık!
+            return;
         }
         if (book == null) {
             System.out.println("[UYARI] : Geçersiz veya boş kitap eklenemez!");
             return;
         }
-        book.setStatus(Status.AVAILABLE);
+        
+        // Eğer kitap sahipli değilse (normal kütüphane kitabı) AVAILABLE yap
+        if (book.getOwner() == null) {
+            book.setStatus(Status.AVAILABLE);
+        } else {
+            // Sahipli kitapları borrowedBooksMap'e ekle
+            this.borrowedBooksMap.put(book, book.getOwner());
+            if (book.getStatus() == null) {
+                book.setStatus(Status.BORROWED);
+            }
+        }
+        
         this.inventory.add(book);
         System.out.println("[YENİ KİTAP] : \"" + book.getTitle() + "\" (ID: " + book.getBookId() + ") envantere eklendi.");
     }
@@ -81,6 +94,7 @@ public class Library implements LibraryOperations {
 
         // Teslimat işlemleri
         book.setStatus(Status.BORROWED);
+        book.setBorrowDate(LocalDate.now()); // Ödünç alınma tarihini set et
 
         // Kitabı üyenin kendi içindeki listeye güvenli metotla ekliyoruz
         member.addBorrowedBook(book, this);
@@ -88,25 +102,48 @@ public class Library implements LibraryOperations {
 
         System.out.println("[İŞLEM ONAYLANDI] : " + member.getReader().getName() + ", " + book.getBookId() + " id no'lu " + " \"" + book.getTitle() + "\" kitabını aldı.");
 
-        // Fatura Kesimi
+        // Depozito Kesimi (10 TL)
         String billId = "BLL-" + (bills.size() + 1);
-        Bill bill = new Bill(billId, member.getMemberId(), book.getPrice());
-        this.bills.add(bill);
-        bill.displayBill();
+        Bill depositBill = new Bill(billId, member.getMemberId(), 10.0, BillType.DEPOSIT);
+        this.bills.add(depositBill);
+        depositBill.displayBill();
     }
 
     // Kitap İade Etme
     @Override
-    public void takeBackBook(MemberRecord member, Book book) {
-        if (member == null || book == null) return;
+    public boolean takeBackBook(MemberRecord member, Book book) {
+        if (member == null || book == null) return false;
 
         if (this.borrowedBooksMap.containsKey(book) && this.borrowedBooksMap.get(book).equals(member)) {
             this.borrowedBooksMap.remove(book);
-            // Üyenin listesinden de çıkarıyoruz
             member.removeBorrowedBook(book);
             book.setStatus(Status.AVAILABLE);
             System.out.println("[İADE ALINDI] : \"" + book.getTitle() + "\" teslim alındı.");
+            
+            // Depozito İade Faturası (10 TL)
+            String billId = "BLL-" + (bills.size() + 1);
+            Bill depositReturnBill = new Bill(billId, member.getMemberId(), 10.0, BillType.DEPOSIT_RETURN);
+            this.bills.add(depositReturnBill);
+            depositReturnBill.displayBill();
+            
+            // Gecikme Cezası Hesaplama (14 gün sonrası her gün 5 TL)
+            LocalDate borrowDate = book.getBorrowDate();
+            if (borrowDate != null) {
+                long daysOverdue = ChronoUnit.DAYS.between(borrowDate, LocalDate.now());
+                if (daysOverdue > 14) {
+                    double lateFee = (daysOverdue - 14) * 5.0;
+                    String lateBillId = "BLL-" + (bills.size() + 1);
+                    Bill lateBill = new Bill(lateBillId, member.getMemberId(), lateFee, BillType.LENDING);
+                    this.bills.add(lateBill);
+                    System.out.println("[CEZA] : " + (daysOverdue - 14) + " gün gecikmeden " + lateFee + " TL ceza kesildi.");
+                    lateBill.displayBill();
+                }
+            }
+            
+            book.setBorrowDate(null);
+            return true;
         }
+        return false;
     }
 
     // Üyenin Üzerindeki Kitapları Gösterme
@@ -131,9 +168,9 @@ public class Library implements LibraryOperations {
         if (query == null || query.trim().isEmpty()) return null;
         String lowerQuery = query.toLowerCase().trim();
 
-        int searchedId = -1;
+        long searchedId = -1;
         try {
-            searchedId = Integer.parseInt(lowerQuery);
+            searchedId = Long.parseLong(lowerQuery);
         } catch (NumberFormatException e) {
             // Sayı değilse ID araması pas geçilir
         }

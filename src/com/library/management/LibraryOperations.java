@@ -8,7 +8,7 @@ public interface LibraryOperations {
 
     void lendBook(MemberRecord member, Book book);
 
-    void takeBackBook(MemberRecord member, Book book);
+    boolean takeBackBook(MemberRecord member, Book book);
 
     void showBooksOfMember(MemberRecord member);
 }

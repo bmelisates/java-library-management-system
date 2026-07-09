@@ -17,6 +17,7 @@ import java.util.Scanner;
 public class Main {
     private static final Library library = new Library();
     private static final Scanner scanner = new Scanner(System.in);
+    private static final Librarian adminLibrarian; // Global kütüphaneci (bir kere oluşturulur)
 
     // Oturum (Session) değişkenleri
     private static MemberRecord currentUser = null;
@@ -24,20 +25,21 @@ public class Main {
 
     // Static blok, uygulama ayağa kalktığı anda SADECE BİR KERE çalışır.
     static {
-        // 1. Kütüphaneciyi Tanımla
-        Librarian admin = new Librarian("admin", "LIB1", "123456", library);
+        // Admin kütüphanecisini oluştur ve sakla (sonsuza kadar)
+        adminLibrarian = new Librarian("admin", "LIB1", "123456", library);
 
-        // 4. Test Üyesi Ekle
+        // Test Üyesi Ekle
         Reader r1 = new Reader("Ahmet Test");
         MemberRecord m1 = new StudentMember(r1, "İzmir", "555-0000");
         library.getMembers().put(m1.getMemberId(), m1);
 
-        // 2. Yazar oluştur
+        // Yazar oluştur
         Author a1 = new Author("George Orwell");
 
-        // 3. Kitapları Kütüphaneye ekle
-        library.purchaseBook(new Novel("1984", 200, "1.Baskı", LocalDate.now(), Genre.CLASSIC, a1), admin);
-        library.purchaseBook(new Novel("Hayvan Çiftliği", 150, "1.Baskı", LocalDate.now(), Genre.CLASSIC, a1), admin);
+        // Kitapları Kütüphaneye ekle
+        library.purchaseBook(new Novel("1984", 200, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a1), adminLibrarian);
+        library.purchaseBook(new Novel("Hayvan Çiftliği", 150, "1.Baskı", LocalDate.now(), Genre.CLASSIC, a1), adminLibrarian);
+
 
         System.out.println("--- Sistem verileri başarıyla yüklendi ---");
     }
@@ -95,9 +97,9 @@ public class Main {
         System.out.print("Şifre: ");
         String pass = scanner.nextLine();
 
-        // Basit bir kontrol (Admin nesnesinin şifresini biliyoruz)
+        // Şifre kontrolü yap ve doğruysa önceden oluşturulmuş admin nesnesini kullan
         if (user.equals("admin") && pass.equals("123456")) {
-            currentLibrarian = new Librarian(user, "LIB1", pass, library);
+            currentLibrarian = adminLibrarian; // Aynı nesneyi kullan (yeniden oluşturma yok!)
             System.out.println("✅ Sayın Kütüphaneci, sistem yetkileri aktif.");
         } else {
             System.out.println("❌ HATA: Hatalı yetkili bilgileri!");
@@ -145,8 +147,11 @@ public class Main {
             System.out.println("1. Kitap ödünç al");
             System.out.println("2. Kitabı geri ver");
             System.out.println("3. Elimdeki kitapları listele");
-            System.out.println("4. Kütüphanedeki kitapları listele");
-            System.out.println("5. Çıkış");
+            System.out.println("4. Kütüphanedeki tüm kitapları listele");
+            System.out.println("5. Yazara göre kitapları listele");
+            System.out.println("6. Kategoriye göre kitapları listele");
+            System.out.println("7. Kitap ara");
+            System.out.println("8. Çıkış");
             System.out.print("Seçiminiz: ");
 
             String secim = scanner.nextLine();
@@ -156,7 +161,7 @@ public class Main {
                     System.out.print("Ödünç almak istediğiniz kitabın ismini girin: ");
 
                     String name = scanner.nextLine();
-                    Book b = library.searchBook(name); // String'i Book'a çeviriyoruz
+                    Book b = library.searchBook(name);
                     if (b != null) {
                         library.lendBook(currentUser, b);
                     } else {
@@ -168,7 +173,16 @@ public class Main {
                     String id = scanner.nextLine();
                     Book b = library.searchBook(id);
                     if (b != null) {
-                        library.takeBackBook(currentUser, b);
+                        if (!currentUser.getBorrowedBooks().contains(b)) {
+                            System.out.println("❌ HATA: Bu kitap sizin elinizdeki ödünç kitaplar arasında değil!");
+                        } else {
+                            boolean success = library.takeBackBook(currentUser, b);
+                            if (success) {
+                                System.out.println("✅ Kitap başarıyla iade edildi. Depozitonuz (10 TL) geri alındı.");
+                            } else {
+                                System.out.println("❌ HATA: Kitap iade işlemi başarısız oldu!");
+                            }
+                        }
                     } else {
                         System.out.println("❌ Kitap bulunamadı!");
                     }
@@ -179,10 +193,23 @@ public class Main {
                 case "4" -> {
                     System.out.println("\n--- MEVCUT KİTAPLAR ---");
                     for (Book b : library.getInventory()) {
-                        b.display(); // Kitap sınıfındaki display metodunu kullandığını varsayıyorum
+                        b.display();
                     }
                 }
                 case "5" -> {
+                    System.out.print("Yazarın adını girin: ");
+                    String authorName = scanner.nextLine();
+                    library.listBooksByAuthor(authorName);
+                }
+                case "6" -> {
+                    System.out.print("Kategoriyi girin (Novel, Journal, StudyBook, Magazine): ");
+                    String category = scanner.nextLine();
+                    library.listBooksBySubCategory(category);
+                }
+                case "7" -> {
+                    handleSearchBook();
+                }
+                case "8" -> {
                     currentUser = null;
                     inMenu = false;
                     System.out.println("Oturum kapatıldı.");
@@ -196,7 +223,9 @@ public class Main {
         boolean inMenu = true;
         while (inMenu) {
             System.out.println("\n--- KÜTÜPHANECİ YÖNETİM PANELİ ---");
-            System.out.println("1. Kitap Ekle\n2. Sil\n3. Güncelle\n4. Listele\n5. Çıkış");
+            System.out.println("1. Kitap Ekle\n2. Sil\n3. Güncelle\n4. Tüm Kitapları Listele");
+            System.out.println("5. Üyeye Ödünç Ver\n6. Kitap Ara\n7. Yazara Göre Kitapları Listele");
+            System.out.println("8. Kategoriye Göre Kitapları Listele\n9. Tüm Yazarları Listele\n10. Çıkış");
             System.out.print("Seçiminiz: ");
 
             String secim = scanner.nextLine();
@@ -205,7 +234,20 @@ public class Main {
                 case "2" -> handleDeleteBook();
                 case "3" -> handleUpdateBook();
                 case "4" -> library.getInventory().forEach(Book::display);
-                case "5" -> {
+                case "5" -> handleLendBookByLibrarian();
+                case "6" -> handleSearchBook();
+                case "7" -> {
+                    System.out.print("Yazarın adını girin: ");
+                    String authorName = scanner.nextLine();
+                    library.listBooksByAuthor(authorName);
+                }
+                case "8" -> {
+                    System.out.print("Kategoriyi girin (Novel, Journal, StudyBook, Magazine): ");
+                    String category = scanner.nextLine();
+                    library.listBooksBySubCategory(category);
+                }
+                case "9" -> library.showAllUniqueAuthors();
+                case "10" -> {
                     inMenu = false;
                     currentLibrarian = null;
                 }
@@ -217,8 +259,16 @@ public class Main {
     private static void handleAddBook() {
         System.out.print("Kitap Adı: ");
         String title = scanner.nextLine();
-        System.out.print("Fiyat: ");
-        double price = Double.parseDouble(scanner.nextLine());
+        if (title.trim().isEmpty()) {
+            System.out.println("❌ HATA: Kitap adı boş olamaz!");
+            return;
+        }
+
+        double price = readDoubleInput("Fiyat: ");
+        if (price < 0) {
+            System.out.println("❌ HATA: Fiyat negatif olamaz!");
+            return;
+        }
 
         // 1. Yazar Toplama
         List<Author> yazarListesi = new ArrayList<>();
@@ -285,19 +335,94 @@ public class Main {
         }
     }
 
-
     private static void handleDeleteBook() {
-        System.out.print("Silinecek Kitap ID: ");
-        library.deleteBook(Integer.parseInt(scanner.nextLine()), currentLibrarian);
+        int id = readIntegerInput("Silinecek Kitap ID: ");
+        if (id > 0) {
+            library.deleteBook(id, currentLibrarian);
+        } else {
+            System.out.println("❌ HATA: Geçersiz kitap ID!");
+        }
     }
 
     private static void handleUpdateBook() {
-        System.out.print("ID: ");
-        int id = Integer.parseInt(scanner.nextLine());
-        System.out.print("Yeni Fiyat: ");
-        double price = Double.parseDouble(scanner.nextLine());
+        int id = readIntegerInput("ID: ");
+        if (id <= 0) {
+            System.out.println("❌ HATA: Geçersiz kitap ID!");
+            return;
+        }
+
+        double price = readDoubleInput("Yeni Fiyat: ");
+        if (price < 0) {
+            System.out.println("❌ HATA: Fiyat negatif olamaz!");
+            return;
+        }
+
         System.out.print("Yeni Baskı: ");
         String edition = scanner.nextLine();
+        if (edition.trim().isEmpty()) {
+            System.out.println("❌ HATA: Baskı bilgisi boş olamaz!");
+            return;
+        }
+
         library.updateBook(id, price, edition, currentLibrarian);
+    }
+
+    private static void handleLendBookByLibrarian() {
+        System.out.print("Üye ID'sini girin: ");
+        String memberId = scanner.nextLine();
+
+        if (!currentLibrarian.verifyMember(memberId)) {
+            System.out.println("❌ HATA: Bu üye sistemde kayıtlı değil!");
+            return;
+        }
+
+        MemberRecord member = library.getMembers().get(memberId);
+        System.out.print("Kitap id girin: ");
+        String bookId = scanner.nextLine();
+        Book book = library.searchBook(bookId);
+
+        if (book == null) {
+            System.out.println("❌ HATA: Kitap bulunamadı!");
+            return;
+        }
+
+        currentLibrarian.issueBook(member, book);
+    }
+
+    private static void handleSearchBook() {
+        System.out.print("Aradığınız kitabın adını veya ID'sini girin: ");
+        String query = scanner.nextLine();
+        
+        Book book = library.searchBook(query);
+        if (book != null) {
+            System.out.println("\n--- ARAMA SONUCU ---");
+            book.display();
+        } else {
+            System.out.println("❌ HATA: Kitap bulunamadı!");
+        }
+    }
+
+    // ===== INPUT VALIDATION HELPER METODLAR =====
+
+    private static double readDoubleInput(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                return Double.parseDouble(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("❌ HATA: Lütfen geçerli bir sayı girin!");
+            }
+        }
+    }
+
+    private static int readIntegerInput(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                return Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("❌ HATA: Lütfen geçerli bir tam sayı girin!");
+            }
+        }
     }
 }

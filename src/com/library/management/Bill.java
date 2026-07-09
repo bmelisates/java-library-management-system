@@ -8,16 +8,17 @@ public class Bill {
     private String memberId;
     private double amount;
     private Date date;
-    private boolean isPaid; // Faturanın ödenme durumunu takip etmek için
+    private BillType billType;
+    private boolean isPaid;
 
     // 2. CONSTRUCTOR (Yapıcı Metot)
-    // Kütüphaneci fatura kestiği an tutar ve üye bilgisi girilir, tarih otomatik 'şu an' olarak atanır.
-    public Bill(String billNo, String memberId, double amount) {
+    public Bill(String billNo, String memberId, double amount, BillType billType) {
         this.billNo = billNo;
         this.memberId = memberId;
         this.amount = amount;
-        this.date = new Date(); // Faturanın kesildiği anki sistem tarihi
-        this.isPaid = false;    // Yeni kesilen fatura varsayılan olarak ödenmemiştir
+        this.billType = billType;
+        this.date = new Date();
+        this.isPaid = false;
     }
 
     // 3. ANA İŞ METOTLARI (Business Methods)
@@ -36,6 +37,7 @@ public class Bill {
     public void displayBill() {
         System.out.println("\n------- FATURA MAKBUZU -------");
         System.out.println("Fatura No   : " + billNo);
+        System.out.println("Tür         : " + billType.getDescription());
         System.out.println("Üye ID      : " + memberId);
         System.out.println("Tutar       : " + amount + " TL");
         System.out.println("Tarih       : " + date);
@@ -62,5 +64,9 @@ public class Bill {
 
     public boolean isPaid() {
         return isPaid;
+    }
+
+    public BillType getBillType() {
+        return billType;
     }
 }

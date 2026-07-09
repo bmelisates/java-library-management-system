@@ -5,7 +5,7 @@ import com.library.person.Author;
 
 import java.time.LocalDate;
 
-public class Novel extends Book implements Categorizable {
+public class Novel extends Book {
     private Genre genre; // Örn: Bilim Kurgu, Polisiye, Klasik
 
     public Novel(String title, double price, String edition, LocalDate dateOfPurchase, Genre genre, Author... authors) {
@@ -13,8 +13,8 @@ public class Novel extends Book implements Categorizable {
         this.genre = genre;
     }
 
-    public Novel(String title, double price, Status status, String edition, LocalDate dateOfPurchase, MemberRecord owner, Genre genre, Author... authors) {
-        super(title, price, status, edition, dateOfPurchase, owner, authors);
+    public Novel(String title, double price, String edition, LocalDate dateOfPurchase, MemberRecord owner, Genre genre, Author... authors) {
+        super(title, price, edition, dateOfPurchase, owner, authors);
         this.genre = genre;
     }
 

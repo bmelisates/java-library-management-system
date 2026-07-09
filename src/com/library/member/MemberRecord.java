@@ -115,9 +115,6 @@ public abstract class MemberRecord {
                 " | Alınan Kitap: " + getNoBooksIssued() + "/" + maxBookLimit;
     }
 
-    public void payBill(double amount) {
-        System.out.println(reader.getName() + " isimli üye " + amount + " TL ceza ödemesi yaptı.");
-    }
 
     public String getMemberId() {
         return memberId;

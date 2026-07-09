@@ -8,15 +8,16 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class Book {
+public abstract class Book implements Categorizable {
     private static long bookCount = 0; // Otomatik id sayacı
     private final long bookId;
-    private Set<Author> author = new HashSet<>();  // Birden fazla yazarı olan kitaplar için
+    private Set<Author> author = new HashSet<>();  // 1.Birden fazla yazarı olan kitaplar için 2.Aynı yazar tekrar eklenemesin diye.
     private String title;
     private double price;
     private Status status;
     private String edition;
     private LocalDate dateOfPurchase;
+    private LocalDate borrowDate; // Ödünç alınma tarihi
     private MemberRecord owner;
 
     // 1. CONSTRUCTOR: Kütüphanedeki kitap için
@@ -38,15 +39,19 @@ public abstract class Book {
     }
 
     // 2. CONSTRUCTOR: Eski sistemden taşınan, halihazırda başkasında olan(ödünç alınmış) kitap için
-    public Book(String title, double price, Status status, String edition, LocalDate dateOfPurchase, MemberRecord owner, Author... authors) {
+    public Book(String title, double price, String edition, LocalDate dateOfPurchase, MemberRecord owner, Author... authors) {
         bookCount++;
         this.bookId = bookCount;
         this.title = title;
         this.price = price;
-        this.status = status; // Dışarıdan ne gelirse (Örn: BORROWED)
+        this.status = Status.BORROWED;
         this.edition = edition;
         this.dateOfPurchase = dateOfPurchase;
         this.owner = owner;  // Kitap kimdeyse onun ismi
+        // Eğer owner varsa, kitabı owner'ın elindeki kitaplar listesine ekle
+        if (owner != null) {
+            owner.getBorrowedBooks().add(this);
+        }
         if (authors != null) {
             for (Author a : authors) {
                 this.author.add(a); // Kitabın yazar setine ekle
@@ -109,6 +114,14 @@ public abstract class Book {
 
     public LocalDate getDateOfPurchase() {
         return dateOfPurchase;
+    }
+
+    public LocalDate getBorrowDate() {
+        return borrowDate;
+    }
+
+    public void setBorrowDate(LocalDate borrowDate) {
+        this.borrowDate = borrowDate;
     }
 
     public MemberRecord getOwner() {
