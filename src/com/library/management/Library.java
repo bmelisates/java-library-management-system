@@ -264,17 +264,31 @@ public class Library implements LibraryOperations {
         if (!found) System.out.println("Bu türde kitap bulunmuyor.");
     }
 
-    // Alt kategoriye göre listeleme
+    // Kitap türüne göre listeleme (Novel, Journal, StudyBook, Magazine)
+    public void listBooksByType(Class<? extends Book> bookType) {
+        System.out.println("\n--- " + bookType.getSimpleName() + " Türündeki Kitaplar ---");
+        boolean found = false;
+
+        for (Book book : this.inventory) {
+            if (bookType.isInstance(book)) {
+                book.display();
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println(bookType.getSimpleName() + " türünde kitap bulunamadı.");
+        }
+    }
+
+    // Alt kategoriye göre listeleme (Genre, FieldOfStudy, SubjectType, MagazineType)
     public void listBooksBySubCategory(String subCategory) {
         System.out.println("\n--- '" + subCategory + "' Kategorisindeki Tüm Kitaplar ---");
         boolean found = false;
 
         for (Book book : this.inventory) {
-            // Kitabın Categorizable arayüzünü uygulayıp uygulamadığını kontrol ediyoruz
             if (book instanceof Categorizable) {
                 Categorizable categorizableBook = (Categorizable) book;
-
-                // Kitabın kategorisini alıp, arananla eşleşiyor mu diye bakıyoruz
                 if (categorizableBook.getCategory().equalsIgnoreCase(subCategory)) {
                     book.display();
                     found = true;

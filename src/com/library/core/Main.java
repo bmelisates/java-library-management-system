@@ -149,7 +149,7 @@ public class Main {
             System.out.println("3. Elimdeki kitapları listele");
             System.out.println("4. Kütüphanedeki tüm kitapları listele");
             System.out.println("5. Yazara göre kitapları listele");
-            System.out.println("6. Kategoriye göre kitapları listele");
+            System.out.println("6. Türe göre kitapları listele");
             System.out.println("7. Kitap ara");
             System.out.println("8. Çıkış");
             System.out.print("Seçiminiz: ");
@@ -202,9 +202,7 @@ public class Main {
                     library.listBooksByAuthor(authorName);
                 }
                 case "6" -> {
-                    System.out.print("Kategoriyi girin (Novel, Journal, StudyBook, Magazine): ");
-                    String category = scanner.nextLine();
-                    library.listBooksBySubCategory(category);
+                    showBookTypeMenu();
                 }
                 case "7" -> {
                     handleSearchBook();
@@ -225,7 +223,7 @@ public class Main {
             System.out.println("\n--- KÜTÜPHANECİ YÖNETİM PANELİ ---");
             System.out.println("1. Kitap Ekle\n2. Sil\n3. Güncelle\n4. Tüm Kitapları Listele");
             System.out.println("5. Üyeye Ödünç Ver\n6. Kitap Ara\n7. Yazara Göre Kitapları Listele");
-            System.out.println("8. Kategoriye Göre Kitapları Listele\n9. Tüm Yazarları Listele\n10. Çıkış");
+            System.out.println("8. Türe Göre Kitapları Listele\n9. Tüm Yazarları Listele\n10. Çıkış");
             System.out.print("Seçiminiz: ");
 
             String secim = scanner.nextLine();
@@ -242,9 +240,7 @@ public class Main {
                     library.listBooksByAuthor(authorName);
                 }
                 case "8" -> {
-                    System.out.print("Kategoriyi girin (Novel, Journal, StudyBook, Magazine): ");
-                    String category = scanner.nextLine();
-                    library.listBooksBySubCategory(category);
+                    showBookTypeMenu();
                 }
                 case "9" -> library.showAllUniqueAuthors();
                 case "10" -> {
@@ -399,6 +395,24 @@ public class Main {
             book.display();
         } else {
             System.out.println("❌ HATA: Kitap bulunamadı!");
+        }
+    }
+
+    private static void showBookTypeMenu() {
+        System.out.println("\n--- KİTAP TÜRÜ SEÇİMİ ---");
+        System.out.println("1. Roman (Novel)");
+        System.out.println("2. Akademik Dergi (Journal)");
+        System.out.println("3. Ders Kitabı (StudyBook)");
+        System.out.println("4. Dergi (Magazine)");
+        System.out.print("Seçiminiz (1-4): ");
+
+        String secim = scanner.nextLine();
+        switch (secim) {
+            case "1" -> library.listBooksByType(Novel.class);
+            case "2" -> library.listBooksByType(Journal.class);
+            case "3" -> library.listBooksByType(StudyBook.class);
+            case "4" -> library.listBooksByType(Magazine.class);
+            default -> System.out.println("❌ Geçersiz seçim!");
         }
     }
 
