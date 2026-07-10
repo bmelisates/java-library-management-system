@@ -22,7 +22,7 @@ public abstract class Book implements Categorizable {
 
     // 1. CONSTRUCTOR: Kütüphanedeki kitap için
     public Book(String title, double price, String edition, LocalDate dateOfPurchase, Author... authors) {
-        //Varargs ile birden fazla yazar eklenebilir
+        //Varargs ile birden fazla yazar eklenebilir. (Author... authors -> Author[] authors)
         bookCount++;
         this.bookId = bookCount;
         this.title = title;
