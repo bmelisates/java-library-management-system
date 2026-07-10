@@ -2,19 +2,19 @@ package com.library.person;
 
 import com.library.book.Book;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class Author extends Person {
-    private List<Book> books;
+    private Set<Book> books; // Aynı kitap tekrar eklenemez
     private static int idCounter = 1; // Otomatik ID sayacı
     private final int authorId;      // Her yazar için benzersiz ve değişmez ID
 
     public Author(String name) {
         super(name);
         this.authorId = idCounter++; // Yeni nesne oluştuğunda ID'yi ata ve sayacı artır
-        this.books = new ArrayList<>();
+        this.books = new HashSet<>();
     }
 
     public void addBook(Book newBook) {
@@ -22,12 +22,7 @@ public class Author extends Person {
             System.out.println("Hata: Geçersiz (null) bir kitap eklenemez!");
             return;
         }
-        // Kitap listede zaten var mı kontrol et!
-        if (!books.contains(newBook)) {
-            books.add(newBook);
-        } else {
-            System.out.println("Bilgi: Bu kitap zaten " + getName() + " isimli yazar listesinde mevcut.");
-        }
+        books.add(newBook);
     }
 
     public void showBooks() {
@@ -46,11 +41,11 @@ public class Author extends Person {
         System.out.println("Yazar ismi: " + getName());
     }
 
-    public List<Book> getBooks() {
+    public Set<Book> getBooks() {
         return books;
     }
 
-    public void setBooks(List<Book> books) {
+    public void setBooks(Set<Book> books) {
         this.books = books;
     }
 

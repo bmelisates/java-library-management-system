@@ -1,7 +1,6 @@
 package com.library.management;
 
 import com.library.book.Book;
-import com.library.book.Categorizable;
 import com.library.book.Status;
 import com.library.member.MemberRecord;
 import com.library.person.Author;
@@ -10,8 +9,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-public class Library implements LibraryOperations {
-    private List<Book> inventory;                     //Kütüphanedeki tüm kitapların listesi
+public class Library {
+    private List<Book> inventory;                     // Kütüphanedeki tüm kitapların listesi (Ekleme sırasını koruması için List seçtim)
+    private Map<Long, Book> inventoryById = new HashMap<>(); // Arama hızını artırmak için
     private Map<String, MemberRecord> members;        // Üyeleri id keyi ile tutan Map
     private Map<Book, MemberRecord> borrowedBooksMap; // Kitapların kimde olduğunu tutan Map
     private List<Bill> bills;                         // Faturaların listesi
@@ -19,6 +19,7 @@ public class Library implements LibraryOperations {
     // 1. CONSTRUCTOR : Sıfırdan açılan temiz kütüphane
     public Library() {
         this.inventory = new ArrayList<>();
+        this.inventoryById = new HashMap<>();
         this.members = new HashMap<>();
         this.borrowedBooksMap = new HashMap<>();
         this.bills = new ArrayList<>();
@@ -31,11 +32,16 @@ public class Library implements LibraryOperations {
         this.borrowedBooksMap = new HashMap<>();
         this.bills = new ArrayList<>();
 
+        this.inventoryById = new HashMap<>();
+        for (Book book : this.inventory) {
+            this.inventoryById.put(book.getBookId(), book);
+        }
+
         // Veri Göçü (Migration) Otomatik Eşleştirme Motoru
         if (oldMembers != null) {
             for (MemberRecord member : oldMembers.values()) {
-                // Kitaplar üyenin kendi constructor'ında zaten List<Book> borrowedBooks içerisine eklendi.
-                List<Book> elindekiKitaplar = member.getBorrowedBooks();
+                // Kitaplar üyenin kendi constructor'ında zaten Set<Book> borrowedBooks içerisine eklendi.
+                Set<Book> elindekiKitaplar = member.getBorrowedBooks();
                 if (elindekiKitaplar != null && !elindekiKitaplar.isEmpty()) {
                     for (Book book : elindekiKitaplar) {
                         this.borrowedBooksMap.put(book, member);
@@ -47,20 +53,14 @@ public class Library implements LibraryOperations {
     }
 
 
-    // Kütüphaneye Yeni Kitap Ekleme
-    @Override
-    public void purchaseBook(Book book, Object user) {
-        // Güvenlik katmanı: Kütüphaneci mi?
-        if (!(user instanceof Librarian)) {
-            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap ekleyebilir.");
-            return;
-        }
+    // Kitabı envantere ekle - protected -> başka paketten erişilemesin (librarianda çağırıyoruz)
+    protected void addBook(Book book) {
         if (book == null) {
             System.out.println("[UYARI] : Geçersiz veya boş kitap eklenemez!");
             return;
         }
-        
-        // Eğer kitap sahipli değilse (normal kütüphane kitabı) AVAILABLE yap
+
+        // Eğer kitap sahipli değilse (kütüphanede duran kitap) AVAILABLE yap
         if (book.getOwner() == null) {
             book.setStatus(Status.AVAILABLE);
         } else {
@@ -70,13 +70,13 @@ public class Library implements LibraryOperations {
                 book.setStatus(Status.BORROWED);
             }
         }
-        
+
         this.inventory.add(book);
+        this.inventoryById.put(book.getBookId(), book);
         System.out.println("[YENİ KİTAP] : \"" + book.getTitle() + "\" (ID: " + book.getBookId() + ") envantere eklendi.");
     }
 
-    // Kitap Ödünç Verme
-    @Override
+    // Kitap ödünç verme
     public void lendBook(MemberRecord member, Book book) {
         if (member == null || book == null) {
             System.out.println("[HATA] : Üye veya kitap bilgisi boş olamaz!");
@@ -94,10 +94,10 @@ public class Library implements LibraryOperations {
 
         // Teslimat işlemleri
         book.setStatus(Status.BORROWED);
-        book.setBorrowDate(LocalDate.now()); // Ödünç alınma tarihini set et
+        book.setBorrowDate(LocalDate.now());
 
         // Kitabı üyenin kendi içindeki listeye güvenli metotla ekliyoruz
-        member.addBorrowedBook(book, this);
+        member.addBorrowedBook(book);
         this.borrowedBooksMap.put(book, member);
 
         System.out.println("[İŞLEM ONAYLANDI] : " + member.getReader().getName() + ", " + book.getBookId() + " id no'lu " + " \"" + book.getTitle() + "\" kitabını aldı.");
@@ -109,8 +109,7 @@ public class Library implements LibraryOperations {
         depositBill.displayBill();
     }
 
-    // Kitap İade Etme
-    @Override
+    // Kitap iade alma (temel operasyon - iş mantığı Librarian'da)
     public boolean takeBackBook(MemberRecord member, Book book) {
         if (member == null || book == null) return false;
 
@@ -119,13 +118,13 @@ public class Library implements LibraryOperations {
             member.removeBorrowedBook(book);
             book.setStatus(Status.AVAILABLE);
             System.out.println("[İADE ALINDI] : \"" + book.getTitle() + "\" teslim alındı.");
-            
+
             // Depozito İade Faturası (10 TL)
             String billId = "BLL-" + (bills.size() + 1);
             Bill depositReturnBill = new Bill(billId, member.getMemberId(), 10.0, BillType.DEPOSIT_RETURN);
             this.bills.add(depositReturnBill);
             depositReturnBill.displayBill();
-            
+
             // Gecikme Cezası Hesaplama (14 gün sonrası her gün 5 TL)
             LocalDate borrowDate = book.getBorrowDate();
             if (borrowDate != null) {
@@ -139,29 +138,13 @@ public class Library implements LibraryOperations {
                     lateBill.displayBill();
                 }
             }
-            
+
             book.setBorrowDate(null);
             return true;
         }
         return false;
     }
 
-    // Üyenin Üzerindeki Kitapları Gösterme
-    @Override
-    public void showBooksOfMember(MemberRecord member) {
-        if (member == null) return;
-
-        // 🔑 DÜZELTME: Map'ten değil, doğrudan üyenin içindeki canlı listeden okuyoruz!
-        List<Book> elindekiKitaplar = member.getBorrowedBooks();
-        System.out.println("\n📚 " + member.getReader().getName() + " Üzerindeki Kitaplar:");
-        if (elindekiKitaplar == null || elindekiKitaplar.isEmpty()) {
-            System.out.println("- Ödünç alınmış kitap yok.");
-        } else {
-            for (Book b : elindekiKitaplar) {
-                System.out.println("  > [" + b.getBookId() + "] " + b.getTitle());
-            }
-        }
-    }
 
     // Gelişmiş Arama Motoru
     public Book searchBook(String query) {
@@ -188,15 +171,8 @@ public class Library implements LibraryOperations {
         return null;
     }
 
-    // Kitap Güncelleme
-    public void updateBook(int bookId, double newPrice, String newEdition, Object user) {
-        // 1. GÜVENLİK KATMANI: Sadece kütüphaneci mi?
-        if (!(user instanceof Librarian)) {
-            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap güncelleyebilir.");
-            return; // Metodu burada kesip çıkıyoruz
-        }
-
-        // 2. İŞ MANTIĞI: Eğer kütüphaneci ise devam et
+    // Kitap güncelleme - protected -> başka paketten erişilemesin (librarianda çağırıyoruz)
+    protected void updateBook(int bookId, double newPrice, String newEdition) {
         Book book = searchBook(String.valueOf(bookId));
         if (book != null) {
             book.setPrice(newPrice);
@@ -207,13 +183,8 @@ public class Library implements LibraryOperations {
         }
     }
 
-    //  Kitap Silme
-    public void deleteBook(int bookId, Object user) {
-        // 1. GÜVENLİK KATMANI: Sadece kütüphaneci mi?
-        if (!(user instanceof Librarian)) {
-            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap güncelleyebilir.");
-            return; // Metodu burada kesip çıkıyoruz
-        }
+    // Kitap silme(id ile) - protected -> başka paketten erişilemesin (librarianda çağırıyoruz)
+    protected void deleteBook(int bookId) {
         Book book = searchBook(String.valueOf(bookId));
         if (book != null) {
             if (book.getStatus() == Status.BORROWED) {
@@ -221,47 +192,28 @@ public class Library implements LibraryOperations {
                 return;
             }
             this.inventory.remove(book);
+            this.inventoryById.remove(book.getBookId());
             System.out.println("[SİLİNDİ] : \"" + book.getTitle() + "\" envanterden kaldırıldı.");
         } else {
             System.out.println("[HATA] : Silinecek kitap bulunamadı!");
         }
     }
 
-    // Kitap silme (nesne ile)
-    public void deleteBook(Book book, Object user) {
-        // 1. GÜVENLİK KATMANI: Sadece kütüphaneci mi?
-        if (!(user instanceof Librarian)) {
-            System.out.println("❌ HATA: Yetkisiz erişim! Sadece kütüphaneciler kitap güncelleyebilir.");
-            return; // Metodu burada kesip çıkıyoruz
-        }
-        // Nesnenin envanterde var olduğunu doğrulayalım
+    // Kitap silme (nesne ile) - protected -> başka paketten erişilemesin (librarianda çağırıyoruz)
+    protected void deleteBook(Book book) {
         if (!this.inventory.contains(book)) {
             System.out.println("[HATA] : Bu kitap zaten envanterde kayıtlı değil!");
             return;
         }
 
-        // Ödünçte olup olmadığını kontrol et
         if (book.getStatus() == Status.BORROWED) {
             System.out.println("[HATA] : \"" + book.getTitle() + "\" ödünçte olduğu için silinemez!");
             return;
         }
 
         this.inventory.remove(book);
+        this.inventoryById.remove(book.getBookId());
         System.out.println("[SİLİNDİ] : \"" + book.getTitle() + "\" envanterden kaldırıldı.");
-    }
-
-    // Kategoriye Göre Listeleme (Polymorphism)
-    // Sadece o sınıfa ait kitapları getirir (örn: listBooksByClass(Novel.class))
-    public void listBooksByClass(Class<? extends Book> categoryClass) {
-        System.out.println("\n--- " + categoryClass.getSimpleName() + " Türündeki Kitaplar ---");
-        boolean found = false;
-        for (Book book : this.inventory) {
-            if (categoryClass.isInstance(book)) {
-                book.display();
-                found = true;
-            }
-        }
-        if (!found) System.out.println("Bu türde kitap bulunmuyor.");
     }
 
     // Kitap türüne göre listeleme (Novel, Journal, StudyBook, Magazine)
@@ -281,25 +233,6 @@ public class Library implements LibraryOperations {
         }
     }
 
-    // Alt kategoriye göre listeleme (Genre, FieldOfStudy, SubjectType, MagazineType)
-    public void listBooksBySubCategory(String subCategory) {
-        System.out.println("\n--- '" + subCategory + "' Kategorisindeki Tüm Kitaplar ---");
-        boolean found = false;
-
-        for (Book book : this.inventory) {
-            if (book instanceof Categorizable) {
-                Categorizable categorizableBook = (Categorizable) book;
-                if (categorizableBook.getCategory().equalsIgnoreCase(subCategory)) {
-                    book.display();
-                    found = true;
-                }
-            }
-        }
-
-        if (!found) {
-            System.out.println("'" + subCategory + "' kategorisinde kitap bulunamadı.");
-        }
-    }
 
     // Yazara Göre Kitap Listeleme
     public void listBooksByAuthor(String authorName) {

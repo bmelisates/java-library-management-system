@@ -1,47 +1,45 @@
 package com.library.member;
 
 import com.library.book.Book;
-import com.library.management.Library;
 import com.library.person.Reader;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public abstract class MemberRecord {
-    private String memberId;
-    private MemberType memberType;
-    private LocalDate dateOfMembership;
-    private int noBooksIssued;
-    private int maxBookLimit;
+    private final String memberId;
+    private final MemberType memberType;
+    private final LocalDate dateOfMembership;
+    private final int maxBookLimit;
     private Reader reader;
     private String address;
     private String phoneNo;
     // Üyenin elindeki kitap listesi
-    private List<Book> borrowedBooks;
+    private Set<Book> borrowedBooks; // Aynı kitabı iki defa ödünç alamaz (id'sine göre hash ve equals override ettim)
 
-    // 1. CONSTRUCTOR: Yeni temiz üyeler için (Elde kitap yok)
+    // 1. CONSTRUCTOR: Yeni üyeler için (Elde kitap yok)
     protected MemberRecord(String memberId, MemberType memberType, int maxBookLimit, Reader reader, String address, String phoneNo) {
         this.memberId = memberId;
         this.memberType = memberType;
         this.maxBookLimit = maxBookLimit;
         this.dateOfMembership = LocalDate.now();
-        this.borrowedBooks = new ArrayList<>(); // Boş liste ile başlar
+        this.borrowedBooks = new HashSet<>(); // Boş küme ile başlar
         this.reader = reader;
         this.address = address;
         this.phoneNo = phoneNo;
     }
 
     // 2. CONSTRUCTOR: Eski sistemden elinde kitaplarla taşınan üyeler için (Migration)
-    protected MemberRecord(String memberId, MemberType memberType, int maxBookLimit, Reader reader, String address, String phoneNo, List<Book> migrationBooks) {
+    protected MemberRecord(String memberId, MemberType memberType, int maxBookLimit, Reader reader, String address, String phoneNo, Set<Book> migrationBooks) {
         this.memberId = memberId;
         this.memberType = memberType;
         this.maxBookLimit = maxBookLimit;
         this.dateOfMembership = LocalDate.now();
 
         // Eğer dışarıdan kitap listesi gelmişse onu bağla, gelmemişse boş liste aç
-        this.borrowedBooks = (migrationBooks != null) ? new ArrayList<>(migrationBooks) : new ArrayList<>();
+        this.borrowedBooks = (migrationBooks != null) ? new HashSet<>(migrationBooks) : new HashSet<>();
         this.reader = reader;
         this.address = address;
         this.phoneNo = phoneNo;
@@ -52,38 +50,39 @@ public abstract class MemberRecord {
         return borrowedBooks.size();
     }
 
-    // Ödünç alınan kitabı üye listesine ekleme
-    public void addBorrowedBook(Book book, Object requester) {
-        if (!(requester instanceof Library)) {
-            throw new SecurityException("HATA: Yetkisiz işlem!");
-        }
-        // Zaten elinde var mı kontrolü (Duplicate Prevention)
+    // Ödünç alınan kitabı üye listesine ekleyen metot
+    public void addBorrowedBook(Book book) {
+        // 1. Adım: Kitap zaten elinde mi? (Listede varsa hata ver)
         if (this.borrowedBooks.contains(book)) {
             System.out.println("[HATA] : Bu kitap zaten üyede!");
             return;
         }
-        // Limit kontrolü
-        if (this.borrowedBooks.size() < maxBookLimit) {
-            this.borrowedBooks.add(book);
-        } else {
-            System.out.println("[UYARI] : Limit doldu!");
-        }
-    }
 
-    // Ödünç alınan kitabı üye listesinden çıkarma
-    public void removeBorrowedBook(Book book) {
-        if (borrowedBooks.isEmpty()) {
-            System.out.println("[UYARI] : " + reader.getName() + " isimli üyenin üzerinde zaten ödünç alınmış hiçbir kitap yok!");
+        // 2. Adım: Limit kontrolü yap
+        if (this.borrowedBooks.size() >= maxBookLimit) {
+            System.out.println("[UYARI] : Limit doldu!");
             return;
         }
-        boolean isRemoved = this.borrowedBooks.remove(book);
-        if (isRemoved) {
+
+        // 3. Adım: Her şey yolundaysa ekle
+        this.borrowedBooks.add(book);
+        System.out.println("[BAŞARILI] : " + book.getTitle() + " eklendi.");
+    }
+
+    // Ödünç alınan kitabı üye listesinden çıkaran metot
+    public void removeBorrowedBook(Book book) {
+        if (borrowedBooks.isEmpty()) {
+            System.out.println("[UYARI] : " + reader.getName() + " isimli üyenin üzerinde ödünç alınmış hiçbir kitap yok!");
+            return;
+        }
+        if (this.borrowedBooks.remove(book)) {
             System.out.println("[BAŞARILI] : '" + book.getTitle() + "' kitabı " + reader.getName() + " üzerinden başarıyla düşüldü.");
         } else {
             System.out.println("[HATA] : '" + book.getTitle() + "' isimli kitap " + reader.getName() + " isimli üyenin elinde görünmüyor!");
         }
     }
 
+    // Üyenin üzerindeki kitapları gösteren metot
     public void showBooks() {
         System.out.println("=== " + reader.getName() + " Üzerindeki Kitaplar (" + getNoBooksIssued() + "/" + maxBookLimit + ") ===");
         if (borrowedBooks.isEmpty()) {
@@ -94,18 +93,6 @@ public abstract class MemberRecord {
                 book.display();
             }
         }
-    }
-
-    //  DELEGE METOT: Üye üzerinden kitap ödünç alma tetikleyicisi
-    public void borrowBook(Book book, Library library) {
-        // Üye işi kendisi çözmeye çalışmaz, kütüphane sistemine talimat verir
-        library.lendBook(this, book);
-    }
-
-    // DELEGE METOT: Üye üzerinden kitap iade etme tetikleyicisi
-    public void returnBook(Book book, Library library) {
-        // Üye "Ben bu kitabı kütüphaneye geri veriyorum" der
-        library.takeBackBook(this, book);
     }
 
     public String getMember() {
@@ -156,7 +143,7 @@ public abstract class MemberRecord {
         this.phoneNo = phoneNo;
     }
 
-    public List<Book> getBorrowedBooks() {
+    public Set<Book> getBorrowedBooks() {
         return borrowedBooks;
     }
 

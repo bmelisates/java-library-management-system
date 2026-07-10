@@ -35,11 +35,15 @@ public class Main {
 
         // Yazar oluştur
         Author a1 = new Author("George Orwell");
+        Author a2 = new Author("Dostoyevski");
 
         // Kitapları Kütüphaneye ekle
-        library.purchaseBook(new Novel("1984", 200, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a1), adminLibrarian);
-        library.purchaseBook(new Novel("Hayvan Çiftliği", 150, "1.Baskı", LocalDate.now(), Genre.CLASSIC, a1), adminLibrarian);
-
+        adminLibrarian.purchaseBook(new Novel("1984", 200, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a1));
+        adminLibrarian.purchaseBook(new Novel("Hayvan Çiftliği", 150, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a1));
+        adminLibrarian.purchaseBook(new Novel("Suç ve Ceza", 150, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a2));
+        adminLibrarian.purchaseBook(new Novel("Karamazov Kardeşler", 150, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a2));
+        adminLibrarian.purchaseBook(new Novel("Kumarbaz", 150, "1.Baskı", LocalDate.now(), m1, Genre.CLASSIC, a2));
+        adminLibrarian.purchaseBook(new StudyBook("Borçlar Hukuku", 600, "3.Baskı", LocalDate.now(), SubjectType.LAW, new Author("Kemal Oğuzman"), new Author("Samet Öz")));
 
         System.out.println("--- Sistem verileri başarıyla yüklendi ---");
     }
@@ -188,7 +192,7 @@ public class Main {
                     }
                 }
                 case "3" -> {
-                    library.showBooksOfMember(currentUser);
+                    currentUser.showBooks();
                 }
                 case "4" -> {
                     System.out.println("\n--- MEVCUT KİTAPLAR ---");
@@ -327,14 +331,14 @@ public class Main {
         }
 
         if (newBook != null) {
-            library.purchaseBook(newBook, currentLibrarian);
+            currentLibrarian.purchaseBook(newBook);
         }
     }
 
     private static void handleDeleteBook() {
         int id = readIntegerInput("Silinecek Kitap ID: ");
         if (id > 0) {
-            library.deleteBook(id, currentLibrarian);
+            currentLibrarian.deleteBook(id);
         } else {
             System.out.println("❌ HATA: Geçersiz kitap ID!");
         }
@@ -360,7 +364,7 @@ public class Main {
             return;
         }
 
-        library.updateBook(id, price, edition, currentLibrarian);
+        currentLibrarian.updateBook(id, price, edition);
     }
 
     private static void handleLendBookByLibrarian() {
@@ -388,7 +392,7 @@ public class Main {
     private static void handleSearchBook() {
         System.out.print("Aradığınız kitabın adını veya ID'sini girin: ");
         String query = scanner.nextLine();
-        
+
         Book book = library.searchBook(query);
         if (book != null) {
             System.out.println("\n--- ARAMA SONUCU ---");
