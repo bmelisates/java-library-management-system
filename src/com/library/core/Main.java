@@ -307,29 +307,31 @@ public class Main {
         switch (cat) {
             case "1" -> {
                 for (Genre g : Genre.values()) System.out.println(g.ordinal() + ":" + g);
-                System.out.print("Tür no: ");
-                newBook = new Novel(title, price, edition, LocalDate.now(), Genre.values()[Integer.parseInt(scanner.nextLine())], yazarDizisi);
+                Genre genre = readEnumInput("Tür no: ", Genre.values());
+                newBook = new Novel(title, price, edition, LocalDate.now(), genre, yazarDizisi);
             }
             case "2" -> {
                 for (FieldOfStudy f : FieldOfStudy.values()) System.out.println(f.ordinal() + ":" + f);
-                System.out.print("Alan no: ");
-                int fIdx = Integer.parseInt(scanner.nextLine());
+                FieldOfStudy field = readEnumInput("Alan no: ", FieldOfStudy.values());
                 System.out.print("Yayınevi: ");
                 String pub = scanner.nextLine();
-                newBook = new Journal(title, price, edition, LocalDate.now(), FieldOfStudy.values()[fIdx], pub, yazarDizisi);
+                newBook = new Journal(title, price, edition, LocalDate.now(), field, pub, yazarDizisi);
             }
             case "3" -> {
                 for (SubjectType s : SubjectType.values()) System.out.println(s.ordinal() + ":" + s);
-                System.out.print("Konu no: ");
-                newBook = new StudyBook(title, price, edition, LocalDate.now(), SubjectType.values()[Integer.parseInt(scanner.nextLine())], yazarDizisi);
+                SubjectType subject = readEnumInput("Konu no: ", SubjectType.values());
+                newBook = new StudyBook(title, price, edition, LocalDate.now(), subject, yazarDizisi);
             }
             case "4" -> {
                 for (MagazineType m : MagazineType.values()) System.out.println(m.ordinal() + ":" + m);
-                System.out.print("Dergi no: ");
-                newBook = new Magazine(title, price, edition, LocalDate.now(), MagazineType.values()[Integer.parseInt(scanner.nextLine())], yazarDizisi);
+                MagazineType type = readEnumInput("Dergi no: ", MagazineType.values());
+                newBook = new Magazine(title, price, edition, LocalDate.now(), type, yazarDizisi);
             }
         }
 
+        if (newBook == null) {
+            System.out.println("Geçersiz kategori, kitap eklenmedi.");
+        }
         if (newBook != null) {
             currentLibrarian.purchaseBook(newBook);
         }
@@ -426,10 +428,20 @@ public class Main {
         while (true) {
             System.out.print(prompt);
             try {
-                return Double.parseDouble(scanner.nextLine());
+                double value = Double.parseDouble(scanner.nextLine());
+                if (Double.isFinite(value)) return value;
+                System.out.println("Lütfen sonlu bir sayı girin!");
             } catch (NumberFormatException e) {
                 System.out.println("❌ HATA: Lütfen geçerli bir sayı girin!");
             }
+        }
+    }
+
+    private static <E extends Enum<E>> E readEnumInput(String prompt, E[] values) {
+        while (true) {
+            int index = readIntegerInput(prompt);
+            if (index >= 0 && index < values.length) return values[index];
+            System.out.println("Lütfen 0 ile " + (values.length - 1) + " arasında bir seçim yapın!");
         }
     }
 

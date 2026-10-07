@@ -92,8 +92,14 @@ public class Library {
             return;
         }
 
+        if (!members.containsValue(member) || !inventory.contains(book)) {
+            System.out.println("[HATA] : Üye ve kitap kütüphanede kayıtlı olmalıdır!");
+            return;
+        }
+
         // Teslimat işlemleri
         book.setStatus(Status.BORROWED);
+        book.setOwner(member);
         book.setBorrowDate(LocalDate.now());
 
         // Kitabı üyenin kendi içindeki listeye güvenli metotla ekliyoruz
@@ -117,6 +123,7 @@ public class Library {
             this.borrowedBooksMap.remove(book);
             member.removeBorrowedBook(book);
             book.setStatus(Status.AVAILABLE);
+            book.setOwner(null);
             System.out.println("[İADE ALINDI] : \"" + book.getTitle() + "\" teslim alındı.");
 
             // Depozito İade Faturası (10 TL)
@@ -149,22 +156,24 @@ public class Library {
     // Gelişmiş Arama Motoru
     public Book searchBook(String query) {
         if (query == null || query.trim().isEmpty()) return null;
-        String lowerQuery = query.toLowerCase().trim();
+        String lowerQuery = query.toLowerCase(Locale.ROOT).trim();
 
         long searchedId = -1;
         try {
             searchedId = Long.parseLong(lowerQuery);
+            Book exactMatch = inventoryById.get(searchedId);
+            if (exactMatch != null) return exactMatch;
         } catch (NumberFormatException e) {
             // Sayı değilse ID araması pas geçilir
         }
 
         for (Book book : this.inventory) {
             if (searchedId != -1 && book.getBookId() == searchedId) return book;
-            if (book.getTitle().toLowerCase().contains(lowerQuery)) return book;
+            if (book.getTitle().toLowerCase(Locale.ROOT).contains(lowerQuery)) return book;
 
             if (book.getAuthor() != null) {
                 for (Author author : book.getAuthor()) {
-                    if (author.getName().toLowerCase().contains(lowerQuery)) return book;
+                    if (author.getName().toLowerCase(Locale.ROOT).contains(lowerQuery)) return book;
                 }
             }
         }
@@ -173,7 +182,7 @@ public class Library {
 
     // Kitap güncelleme - protected -> başka paketten erişilemesin (librarianda çağırıyoruz)
     protected void updateBook(int bookId, double newPrice, String newEdition) {
-        Book book = searchBook(String.valueOf(bookId));
+        Book book = inventoryById.get((long) bookId);
         if (book != null) {
             book.setPrice(newPrice);
             book.setEdition(newEdition);
@@ -185,7 +194,7 @@ public class Library {
 
     // Kitap silme(id ile) - protected -> başka paketten erişilemesin (librarianda çağırıyoruz)
     protected void deleteBook(int bookId) {
-        Book book = searchBook(String.valueOf(bookId));
+        Book book = inventoryById.get((long) bookId);
         if (book != null) {
             if (book.getStatus() == Status.BORROWED) {
                 System.out.println("[HATA] : Ödünçte olan kitap sistemden silinemez!");

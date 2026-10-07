@@ -1,48 +1,68 @@
-#  Java OOP Design
+# Kütüphane Yönetim Sistemi
 
-### Proje Kurulumu
+Java ile geliştirilmiş, konsol üzerinden kullanılan bir kütüphane yönetim uygulaması. Workintech Java OOP çalışması kapsamında kitap, yazar, üye ve kütüphaneci ilişkilerini nesne yönelimli bir tasarımla modeller.
 
-Projeyi öncelikle forklayın ve clone edin.
-Daha sonra projeyi IntellijIDEA kullanarak açınız. README.md dosyasını dikkatli bir şekilde okuyarak istenenleri yapmaya çalışın.
-Proje sayımız ilerledikçe proje yönetimimizi kolaylaştırmak adına projelerimizi belli klasör kalıplarında saklamak işimizi kolaylaştırmak adına iyi bir alışkanlıktır.
-Örnek bir Lokasyon: Workintech/Sprint_1/Etud.
+Ödevin gereksinimleri [ASSIGNMENT.md](ASSIGNMENT.md) dosyasında yer alır.
 
-### Hedeflerimiz:
+## Özellikler
 
-### Library System
+- Üye kaydı, üye girişi ve kütüphaneci yönetim paneli.
+- Kitap ekleme, silme; fiyat ve baskı bilgilerini güncelleme.
+- ID, kitap adı veya yazar adına göre arama; yazara ve kitap türüne göre listeleme.
+- Roman, akademik yayın, ders kitabı ve dergi türleri; birden fazla yazar desteği.
+- Kitap ödünç alma, iade etme ve üyenin üzerindeki kitapları görüntüleme.
+- Öğrenciler için 5, akademisyenler için 10 kitap ödünç alma limiti.
+- Ödünç alma sırasında 10 TL depozito faturası, iadede depozito iade faturası.
+- 14 günü aşan ödünç işlemlerinde geciken her gün için 5 TL ceza faturası.
 
- * ![](challenge1.png)
- * Bir kütüphane sistemi modelimiz mevcut.
- * Bu modeli programlamak istiyoruz. Nesne Tabanlı bir uygulama geliştirmek zorundayız.
- * Tamamen özgür bir şekilde istediğiniz türde bir dizayn yapabilirsiniz.
- * Öğrendiğimiz konuları uygulamak hedeflenmektedir.
- * Amacımız bir Kütüphane Otomasyonu dizayn etmek. Ekteki Sınıfları ve aralarındaki ilişkileri kurarak bu sistemi nasıl dizayn edebiliriz?
- * Kendi eklemek istediğiniz özellikleri eklemekten asla çekinmeyiniz.
+## Kurulum ve çalıştırma
 
-### Sistemde mutlaka Olmasını İstediklerimiz Nelerdir?
+JDK 17 veya üzeri gereklidir. Proje harici bağımlılık, Maven veya Gradle kullanmaz.
 
-* Bütün projeniz object oriented design kullanılarak tasarlanmalı ve kodlanmalı.
-* Sınıflarınız arasındaki tüm hiyaraşik yapıyı çizili bir biçimde göstermelisiniz.
-* Projenizde anlamlı paketler oluşturmalı be paketlemeye dikkat etmelisiniz.
-* Oluşturduğunuz tüm sınıflar Encapsulation kurallarına uygun yazılmalı.
-* Composition uygulaması mutlaka olmalı.
-* En az bir tane Inheritance ilişkisi kurmalısınız.
-* En az bir tane Abstract class ya da Interface tanımlayarak bunları implements/extends eden sınıflarınız olmalı.
-* Projenizde polymorphism uygulamaları olmalı ve yazdığınız metodlar olabildiğince esnek çalışmalı.
-* Sisteminizde en az bir list ve bir adet set veri yapısı kullanmalısınız ve anlamlı bir problemi çözüyor olmalı.
-* Veri saklamak için mapleri kullanmalısınız.
-* Minimum 10 sınıfınız olmalı ve bunların arasındaki ilişkiyi düzgün bir şekilde tanımlamalısınız.
+### IntelliJ IDEA
 
-### Sistemde Minimum Neler Yapılabilmelidir?
-Bütün sistemi bir konsol uygulaması olarak dizayn etmelisiniz.(Scanner sınıfı kullanılabilir)
-* Sisteme yeni kitap eklenebilir.
-* Sistemden id, isim veya yazar bilgisine göre bir kitap seçilebilir
-* Sistemde var olan bir kitabın bilgileri güncellenebilir.
-* Sistemde var olan bir kitap silinebilir.
-* Sistemde var olan bir kategorideki tüm kitaplar listelenebilir.
-* Sistemde var olan bir yazarın tüm kitapları listelenebilir
-* Bir kullanıcı sistemde eğer kitap kütüphanede varsa ve başkası tarafından alınmadıysa bir kitabı ödünç alabilir. Bu durum yaşanırsa hangi kitabın hangi kullanıcıda olduğunun bilgisi tutulmalıdır.
-* Aynı şekilde kullanıcı kitap geri teslimde edebilir.
-* Sistemden bir kitap alındığında kitabı alan kullanıcıya bir fatura kesilmelidir. Kitabı geri iade ettiğinde kullanıcıya ücreti geri iade edilmelidir.
-* Kullanıcıların 5 kitap limiti olmalı ve bu kitap limitine ulaştıklarında daha fazla kitap alamamalılar.  
- 
+1. Projeyi IntelliJ IDEA ile açın.
+2. Project SDK olarak JDK 17 veya üzerini seçin.
+3. Gerekirse `src` klasörünü **Sources Root** olarak işaretleyin.
+4. `src/com/library/core/Main.java` dosyasındaki `main` metodunu çalıştırın.
+
+### Terminal (PowerShell)
+
+Projenin kök dizininde aşağıdaki komutları çalıştırın:
+
+```powershell
+$sources = Get-ChildItem -Path src -Recurse -Filter *.java | Select-Object -ExpandProperty FullName
+javac -encoding UTF-8 -d out $sources
+java -cp out com.library.core.Main
+```
+
+## Örnek kullanım
+
+Uygulama örnek kitaplar ve bir öğrenci üye ile başlar.
+
+| Giriş türü | Bilgiler |
+| --- | --- |
+| Kütüphaneci | Kullanıcı adı: `admin`, şifre: `123456` |
+| Örnek üye | Üye ID: `STU-1` |
+| Yeni üye | Ana menüden **Yeni Üye Kaydı** seçeneğini kullanın; oluşturulan ID ile giriş yapın. |
+
+Örnek üyenin üzerinde başlangıçta beş kitap bulunur. Ödünç alma işlemini denemek için önce bu kitaplardan birini iade edebilir veya yeni bir üye oluşturabilirsiniz.
+
+Veriler bellekte tutulur; uygulama kapatıldığında değişiklikler kaybolur. Giriş bilgileri eğitim amaçlı örnek verilerdir. Depozito ve ceza işlemleri fatura kaydı oluşturur; gerçek ödeme yapılmaz.
+
+## Proje yapısı ve OOP tasarımı
+
+```text
+src/com/library/
+├── core/        # Uygulamanın giriş noktası ve konsol menüleri
+├── book/        # Kitap türleri, kategoriler ve kitap durumları
+├── person/      # Kişi, yazar ve okuyucu modelleri
+├── member/      # Üyelik kayıtları, öğrenci ve akademisyen üyeler
+└── management/  # Kütüphane, kütüphaneci ve fatura işlemleri
+```
+
+`Book`, `Person` ve `MemberRecord` soyut sınıfları kalıtım yapısını kurar. Kitaplar `Categorizable` arayüzünü uygular; farklı kitap türleri ortak `Book` tipi üzerinden işlenir. Üyelik kayıtları okuyucu nesnesini içerir. `List` envanter ve faturaları, `Set` tekrarsız yazar ve ödünç kitap kayıtlarını, `Map` ise ID eşleştirmelerini ve kitabın hangi üyede olduğunu tutar.
+
+## Sınıf diyagramı
+
+![Kütüphane sisteminin UML sınıf diyagramı](Library_UML_Final_Professional.png)
